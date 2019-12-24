@@ -1,0 +1,44 @@
+package file;
+
+public class file 
+{
+	String name;
+	String attachedName;
+
+	public file ()
+	{
+		name = "No file";
+		attachedName = null;
+	}
+
+	public String getName ()
+	{
+		return name;
+	}
+
+	public void setName (String name)
+	{
+		this.name = name;
+	}
+
+	public String getAttachedName ()
+	{
+		return attachedName;
+	}
+
+	public void setAttachedName (String attachedName)
+	{
+		this.attachedName = attachedName;
+	}
+
+	@Override
+	public String toString ()
+	{
+		if(attachedName != null)
+			return name;
+		else
+			return name;
+	}
+	
+
+}

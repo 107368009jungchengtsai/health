@@ -1,0 +1,118 @@
+package user;
+
+public class UserInfoBean 
+{
+	//private boolean isLogin = false;
+	private int userDBTableNumber = 0;
+	private String userGraduateYear = "";
+	private String userClass = "";
+	private String userID = "";
+	private String userName = "";
+	private String userPass = "";
+	private String userEmail = "";
+	private int userAuthority = 0;
+	
+	public UserInfoBean()
+	{
+		this.userDBTableNumber = 0;
+		this.userGraduateYear = "";
+		this.userClass = "";
+		this.userID = "";
+		this.userName = "";
+		this.userPass = "";
+		this.userEmail = "";
+		this.userAuthority = 0;
+	}
+	
+	public UserInfoBean(int num, String year, String cla55, String id, String name, String pass, String email, int auth)
+	{
+		this.userDBTableNumber = num;
+		this.userGraduateYear = year;
+		this.userClass = cla55;
+		this.userID = id;
+		this.userName = name;
+		this.userPass = pass;
+		this.userEmail = email;
+		this.userAuthority = auth;
+	}
+
+	public void setUserDBTableNumber(int num) 
+	{
+		this.userDBTableNumber = num;
+	}
+
+	public int getUserDBTableNumber() 
+	{
+		return this.userDBTableNumber;
+	}
+	
+	public void setUserGraduateYear(String year) 
+	{
+		this.userGraduateYear = year;
+	}
+
+	public String getUserGraduateYear() 
+	{
+		return this.userGraduateYear;
+	}
+	
+	public void setUserClass(String cla55) 
+	{
+		this.userClass = cla55;
+	}
+
+	public String getUserClass() 
+	{
+		return this.userClass;
+	}
+	
+	public void setUserID(String userID) 
+	{
+		this.userID = userID;
+	}
+
+	public String getUserID() 
+	{
+		return this.userID;
+	}
+	
+	public void setUserName(String userName) 
+	{
+		this.userName = userName;
+	}
+
+	public String getUserName() 
+	{
+		return this.userName;
+	}
+	
+	public void setUserPass(String userPass) 
+	{
+		this.userPass = userPass;
+	}
+
+	public String getUserPass() 
+	{
+		return this.userPass;
+	}
+	
+	public void setUserEmail(String userEmail) 
+	{
+		this.userEmail = userEmail;
+	}
+
+	public String getUserEmail() 
+	{
+		return this.userEmail;
+	}
+	
+	public void setUserAuthority(int auth)
+	{
+		 this.userAuthority = auth;	
+	}
+	
+	public int getUserAuthority()
+	{
+		return this.userAuthority;	
+	}
+}

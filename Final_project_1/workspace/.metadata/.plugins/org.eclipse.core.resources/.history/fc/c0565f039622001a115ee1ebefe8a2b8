@@ -1,0 +1,41 @@
+package file;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.io.File;
+import file.file;
+
+public class fileList 
+{
+	public ArrayList<file> getFile (String directory) throws IOException
+	{
+		// ArrayList to call file.java
+		ArrayList<file> fileList = new ArrayList<file>();
+		// file directory
+		File F = new File(directory);
+		// f1:指向目標資料夾檔案
+		File []f1 = F.listFiles();
+		
+		for(int i = 0 ; i < F.listFiles().length ; i++ )
+		{
+			 
+			// f:指向file.java做設定，方便給ArrayList做整理
+			file f = new file();
+			//System.out.println(f1[i].getName());
+			f.setName(f1[i].getName());
+			int startIndex = f1[i].getName().lastIndexOf(46) + 1;
+		    int endIndex = f1[i].getName().length();
+			f.setAttachedName(f1[i].getName().substring(startIndex, endIndex));
+			fileList.add(f);
+		}
+		return fileList;
+	}
+	/*
+	public static void main(String[] args)
+	{
+        fileList list = new fileList();
+        ArrayList<file> l = new ArrayList<file>();
+        l = list.getFile("C:\\Users\\asus\\Desktop\\Users\\00357102");
+    }
+    */
+}

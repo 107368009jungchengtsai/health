@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Copy 2 elements to &apos;login_demo/src/user&apos;&#x0D;&#x0A;- Original project: &apos;login_test&apos;&#x0D;&#x0A;- Destination element: &apos;login_demo/src/user&apos;&#x0D;&#x0A;- Original elements:&#x0D;&#x0A;     user.UserInfoLogoutServlet.java&#x0D;&#x0A;     user.UserInfoServlet.java" description="Copy compilation units" destination="=login_demo/src&lt;user" element1="/src&lt;user{UserInfoLogoutServlet.java" element2="/src&lt;user{UserInfoServlet.java" files="0" flags="589830" folders="0" id="org.eclipse.jdt.ui.copy" policy="org.eclipse.jdt.ui.copyResources" stamp="1576774195741" units="2" version="1.0"/>
+</session>

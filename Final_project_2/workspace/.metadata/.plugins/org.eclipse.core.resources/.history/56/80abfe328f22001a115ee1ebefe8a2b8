@@ -1,0 +1,72 @@
+<%@ page language="java" contentType="text/html; charset=BIG5"
+    pageEncoding="BIG5"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=BIG5">
+<title>Login Page</title>
+</head>
+
+<script language="JavaScript">
+
+
+function checkNameAndPassIsEmptyOrNot() 
+{ 
+	
+	if (FORM1.userIDText.value == "" && FORM1.userPassText.value == "") 
+	{ 
+		
+		alert("請輸入帳號/密碼");
+	}
+	else if (FORM1.userIDText.value == "") 
+	{ 
+		
+		alert("請輸入帳號"); 
+	}
+	else if (FORM1.userPassText.value == "") 
+	{ 
+		alert("請輸入密碼");
+	}
+	else
+	{
+		alert("something wrong!");
+	}
+} 
+
+</script>
+
+
+<body>
+<div id="loginpage" class="show"
+			style="margin: 0px auto; height: 300px; width: 1200px">
+			
+			<div id="loginpage" style="margin: 0px auto;width:300px;height:100px;">
+
+			<form action="UserInfoServlet" method=post name=FORM1>
+				<span style="margin: 0px auto;">
+					<P>
+						<font size='4' face=標楷體  height:100px;width:400px;">&nbsp;&nbsp;&nbsp;&nbsp;登入/Login</font>
+					</P>
+				
+					<P>
+						<font face=標楷體 size='4'>帳號 : </font> <INPUT type=text name=userIDText value="">
+					</P>
+					<BR />
+					<P>
+						<font face=標楷體 size='4'>密碼 : </font><INPUT type=password name=userPassText value="">
+					</P>
+					<BR />
+				</span> 
+				<span style="float: right;"> 
+				<INPUT type="submit" value="送出"
+					name=button1 onClick="checkNameAndPassIsEmptyOrNot()" /> <INPUT
+					type="reset" value="清除" name=reset1 />
+				</span>
+			</form>
+			</div>
+		
+		
+		
+		</div>
+</body>
+</html>

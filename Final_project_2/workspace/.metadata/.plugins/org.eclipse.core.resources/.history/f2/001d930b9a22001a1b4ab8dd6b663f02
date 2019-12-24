@@ -1,0 +1,708 @@
+package db;
+
+import java.sql.Connection; 
+import java.sql.DriverManager; 
+import java.sql.PreparedStatement; 
+import java.sql.ResultSet; 
+import java.sql.SQLException; 
+import java.sql.Statement; 
+
+import java.util.Date;
+import java.io.File;
+
+import user.UserInfoBean;
+import java.util.ArrayList; 
+
+public class jdbctomysql {
+
+	private Connection con = null; //Database objects 
+	  //連接object 
+	  private Statement stat = null; 
+	  //執行,傳入之sql為完整字串 
+	  private ResultSet rs = null; 
+	  //結果集 
+	  private PreparedStatement pst = null; 
+	  //執行,傳入之sql為預儲之字申,需要傳入變數之位置 
+	  //先利用?來做標示 
+	  
+	  private String dropdbSQL = "DROP TABLE User "; 
+	  
+	  private String createdbSQL = "CREATE TABLE User (" + 
+	    "    id     INTEGER " + 
+	    "  , name    VARCHAR(20) " + 
+	    "  , passwd  VARCHAR(20))"; 
+	  /*
+	  private String insertdbSQL = "insert into member_table(member_id,member_account,member_password,email_address) " + 
+	      "select ifNULL(max(member_id),0)+1,?,?,? FROM member_table"; 
+	  */
+	  private String insertdbSQL = "insert into member_table(table_number,graduate_year,class,student_id,name,password,email) " + 
+	 	      "select ifNULL(max(table_number),0)+1,?,?,?,?,?,? FROM member_table"; 
+	  
+	  private String updateSQL = "UPDATE member_table set graduate_year = ?, class = ?, name = ?, password = ?, email = ?, authority = ? WHERE student_id = ?";
+	  
+	  private String updatePasswordSQL = "UPDATE member_table set password = ? WHERE student_id = ?";
+	  
+	  private String deleteSQL = "DELETE FROM member_table WHERE student_id = ?";
+	  //private String selectAllSQL = "select * from member_table "; 
+	  
+	  private String selectSQL = "select * from member_table where student_id = ?"; 
+	  
+	  private String selectRootSQL = "select * from root_table where id = ?";
+	  
+	  private String checkSQL = "select * from member_table where id = ?"; 
+
+	  //private String checkAuthoritySQL = "select authority from member_table where member_account = ?"; 
+	  
+	  //------------------連接資料庫方法------------------------
+	  public jdbctomysql() 
+	  { 
+	    try { 
+	      Class.forName("com.mysql.jdbc.Driver"); 
+	      //註冊driver 
+	      con = DriverManager.getConnection( 
+	      "jdbc:mysql://localhost/virtual_lab_server_db?useUnicode=true&characterEncoding=Big5", 
+	      "root","em68273z"); 
+	      //取得connection
+	 
+	//jdbc:mysql://localhost/test?useUnicode=true&characterEncoding=Big5
+	//localhost是主機名,test是database名
+	//useUnicode=true&characterEncoding=Big5使用的編碼 
+	      //System.out.println("1"); 
+	    } 
+	    catch(ClassNotFoundException e) 
+	    { 
+	      System.out.println("DriverClassNotFound :"+e.toString()); 
+	    }//有可能會產生sqlexception 
+	    catch(SQLException x) { 
+	      System.out.println("Exception :"+x.toString()); 
+	      //System.out.println("2"); 
+	    } 
+	    
+	  } 
+	  //--------------------------------------------------------
+	  
+	  //建立table的方式 
+	  //可以看看Statement的使用方式 
+	  public void createTable() 
+	  { 
+	    try 
+	    { 
+	      stat = con.createStatement(); 
+	      stat.executeUpdate(createdbSQL); 
+	    } 
+	    catch(SQLException e) 
+	    { 
+	      System.out.println("CreateDB Exception :" + e.toString()); 
+	    } 
+	    finally 
+	    { 
+	      Close(); 
+	    } 
+	  } 
+	  //新增資料 
+	  //可以看看PrepareStatement的使用方式 
+	  public String insertTable( String year, String clas_s, String id, String name, String password, String email ) 
+	  { 
+		  String result = null;
+	    try 
+	    { 
+	    	boolean userExist = CheckTable_User(id);
+	    	boolean emailExist = CheckTable_Email(email);
+	    	
+	    	if(userExist == true && emailExist == true)
+	    	{
+	    		result = "該使用者及信箱已經存在   /";
+	    	}
+	    	else if(userExist == true)
+	    	{
+	    		result = "該使用者已經存在   /";
+	    	}
+	    	else if(emailExist == true)
+	    	{
+	    		result = "該信箱已經存在   /";
+	    	}
+	    	else
+	    	{
+	    		pst = con.prepareStatement(insertdbSQL); 
+	  	      
+	    		pst.setString(1, year); 
+	  	      	pst.setString(2, clas_s); 
+	  	      	pst.setString(3, id); 
+	  	      	pst.setString(4, name); 
+	  	      	pst.setString(5, password); 
+	  	      	pst.setString(6, email); 
+	  	      	pst.executeUpdate();
+	  	      	
+	  	      	File dir_file = new File("C:\\Users\\user\\Desktop\\Users\\"+id);	  /*路徑跟檔名*/
+			    dir_file.mkdir();
+			    
+	  	      	result = "";
+	    	}
+	    	
+	    } 
+	    catch(SQLException e) 
+	    { 
+	      System.out.println("InsertDB Exception :" + e.toString()); 
+	    } 
+	    finally 
+	    { 
+	      Close(); 
+	    } 
+	    return result;
+	  } 
+	  //刪除Table, 
+	  //跟建立table很像 
+	  public void dropTable() 
+	  { 
+	    try 
+	    { 
+	      stat = con.createStatement(); 
+	      stat.executeUpdate(dropdbSQL); 
+	    } 
+	    catch(SQLException e) 
+	    { 
+	      System.out.println("DropDB Exception :" + e.toString()); 
+	    } 
+	    finally 
+	    { 
+	      Close(); 
+	    } 
+	  } 
+	  
+	  public String UpdatePassword(String id,String password)
+	  {
+		  String result = "";
+		  
+		  //updatePasswordSQL = "UPDATE member_table set password = ? WHERE student_id = ?";
+		  try 
+		    { 
+		    	
+		    	pst = con.prepareStatement(updatePasswordSQL); 
+		  	      
+		    	pst.setString(1, password); 
+		    	pst.setString(2, id); 
+		    	
+		    	
+		  	    pst.executeUpdate();
+		  	    //result = "aaa";
+		    } 
+		    catch(SQLException e) 
+		    { 
+		    	System.out.println("DeleteDB Exception :" + e.toString()); 
+		    	result = e.toString();
+		    } 
+		    finally 
+		    { 
+		      Close(); 
+		    } 
+		  return result;
+	  }
+	  public String UpdateTable(String year, String clas_s, String id, String name, String password, String email, int auth)
+	  {
+		  String result = "";
+		  
+		  //updateSQL = "UPDATE member_table set graduate_year = ?, class = ?, name = ?, password = ?, email = ?, authority = ? WHERE student_id = ?";
+		  try 
+		    { 
+		    	
+		    	pst = con.prepareStatement(updateSQL); 
+		  	      
+		    	pst.setString(1, year); 
+		    	pst.setString(2, clas_s); 
+		    	pst.setString(3, name); 
+		    	pst.setString(4, password); 
+		    	pst.setString(5, email); 
+		    	pst.setInt(6, auth); 
+		    	pst.setString(7, id); 
+		    	
+		  	    pst.executeUpdate();
+		  	    //result = "aaa";
+		    } 
+		    catch(SQLException e) 
+		    { 
+		    	System.out.println("DeleteDB Exception :" + e.toString()); 
+		    	result = e.toString();
+		    } 
+		    finally 
+		    { 
+		      Close(); 
+		    } 
+		  return result;
+	  }
+	  
+	  public String DeleteTable(String id)
+	  {
+		  String result = "";
+		  try 
+		    { 
+		    	
+		    	pst = con.prepareStatement(deleteSQL); 
+		  	      
+		    	pst.setString(1, id); 
+		  	    pst.executeUpdate();
+		  	    //result = "aaa";
+		    } 
+		    catch(SQLException e) 
+		    { 
+		    	System.out.println("DeleteDB Exception :" + e.toString()); 
+		    	result = e.toString();
+		    } 
+		    finally 
+		    { 
+		      Close(); 
+		    } 
+		  return result;
+	  }
+	  
+	  public ArrayList<ArrayList> SelectAllTable() //member table
+	  {
+		  java.util.Date i = new java.util.Date();
+		  // 取的電腦內部的年、月、日、星期、時、分、秒
+		  int Year = i.getYear()+1900-1911;
+		  int Month = i.getMonth()+1;
+		  if(Month >=7 && Month <= 12)
+		  {
+			  Year += 1;
+		  }
+		  int count = 0;
+		  String year;
+		  //String selectAllSQL = "select * from member_table where graduate_year = ?";
+		  String selectAllSQL = "Select * from member_table where graduate_year = ? order by class ASC, student_id ASC";
+		  
+		  //ArrayList<UserInfoBean> userList = new ArrayList<UserInfoBean>();
+		  
+		  
+		  ArrayList<ArrayList> sortList = new ArrayList<ArrayList>();
+		  try 
+		    { 
+			  while(count < 4)
+			  {
+				  year = String.valueOf(Year);
+				  	
+				  pst = con.prepareStatement(selectAllSQL); 
+			    	
+				  pst.setString(1, year); 
+			    	
+				  rs = pst.executeQuery(); //select語法用executeQuery()執行
+				  
+				  ArrayList<UserInfoBean> AList = new ArrayList<UserInfoBean>();
+				  ArrayList<UserInfoBean> BList = new ArrayList<UserInfoBean>();
+				  
+				  while(rs.next()) 
+			      { 
+			    	  UserInfoBean currentUser = new UserInfoBean(rs.getInt("table_number"), rs.getString("graduate_year"), rs.getString("class"), rs.getString("student_id"), rs.getString("name"), rs.getString("password"), rs.getString("email"), rs.getInt("authority"));
+			    	  if(rs.getString("class").equals("A") || rs.getString("class").equals("a"))
+			    	  {
+			    		  
+			    		  AList.add(currentUser);
+			    	  }
+			    	  else if(rs.getString("class").equals("B") || rs.getString("class").equals("b"))
+			    	  {
+			    		  
+			    		  BList.add(currentUser);
+			    	  }
+			    	  
+			    	  //userList.add(currentUser);
+			      } 
+				  
+				  sortList.add(AList);
+				  sortList.add(BList);
+				  Year ++;
+				  count ++;
+			  }
+			  //stat = con.createStatement(); 
+		      //rs = stat.executeQuery(selectAllSQL); 
+		      //System.out.println("ID\t\tName\t\tPASSWORD"); 
+		      
+		    	
+		    } 
+		    catch(SQLException e) 
+		    { 
+		      System.out.println("DropDB Exception :" + e.toString()); 
+		    } 
+		    finally 
+		    { 
+		      Close(); 
+		    } 
+		  
+		  return sortList;
+	  }
+	  
+	  //查詢資料 
+	  //可以看看回傳結果集及取得資料方式 
+	  public int SelectTable(String id, String pass)   //查詢/判斷帳密是否一樣或錯誤或無此帳號
+	  { 
+		  int result = 0;
+	    try 
+	    { 
+	    	pst = con.prepareStatement(selectSQL); 
+	    	
+	    	pst.setString(1, id); 
+	    	
+	    	rs = pst.executeQuery(); //select語法用executeQuery()執行
+	    	
+	    	if(rs.next()) //執行一條   while則為執行多條 ，但user名不會重複
+	    	{ 
+	    		
+	    		if(rs.getString("password").equals(pass)) //用equals()比對字串，不可使用==
+	    		{
+	    			//System.out.println("Bingo" + rs.getString("member_password")); 
+	    			//UserInfoBean currentUser = new UserInfoBean(name, pass);
+	    			//currentUser.setIsLogin(true);
+	    			//return currentUser;
+	    			result = 1; //match
+	    		}
+	    		else  //error password
+	    		{
+	    			//System.out.println("Fucking Hacker" + rs.getString("member_password")); 
+	    			result = 2;
+	    		}
+	    	}
+	    	else
+	    	{
+	    		//System.out.println("Nigger"); //代表沒找到
+	    		result = 0;
+	    	}
+	    	/*
+	    	stat = con.createStatement(); 
+	    	rs = stat.executeQuery(selectSQL); 
+	    	System.out.println("ID\t\tName\t\tPASSWORD\t\tEMAIL"); 
+	    	while(rs.next()) 
+	    	{ 
+	    		System.out.println(rs.getInt("member_id")+"\t\t"+ 
+	            rs.getString("member_account")+"\t\t"+rs.getString("member_password")+"\t\t"+rs.getString("email_address")); 
+	    	} 
+	    	*/
+	    } 
+	    catch(SQLException e) 
+	    { 
+	      System.out.println("DropDB Exception :" + e.toString()); 
+	    } 
+	    finally 
+	    { 
+	      Close(); 
+	    } 
+	    
+	    return result; //0:無此user   1:帳密符合        2:密碼錯誤
+	  } 
+	  
+	  public int SelectRootTable(String id, String pass)   //查詢/判斷帳密是否一樣或錯誤或無此帳號
+	  { 
+		  int result = 0;
+	    try 
+	    { 
+	    	pst = con.prepareStatement(selectRootSQL); 
+	    	
+	    	pst.setString(1, id); 
+	    	
+	    	rs = pst.executeQuery(); //select語法用executeQuery()執行
+	    	
+	    	if(rs.next()) //執行一條   while則為執行多條 ，但user名不會重複
+	    	{ 
+	    		
+	    		if(rs.getString("password").equals(pass)) //用equals()比對字串，不可使用==
+	    		{
+	    			//System.out.println("Bingo" + rs.getString("member_password")); 
+	    			//UserInfoBean currentUser = new UserInfoBean(name, pass);
+	    			//currentUser.setIsLogin(true);
+	    			//return currentUser;
+	    			result = 1; //match
+	    		}
+	    		else  //error password
+	    		{
+	    			//System.out.println("Fucking Hacker" + rs.getString("member_password")); 
+	    			result = 2;
+	    		}
+	    	}
+	    	else
+	    	{
+	    		//System.out.println("Nigger"); //代表沒找到
+	    		result = 0;
+	    	}
+	    	/*
+	    	stat = con.createStatement(); 
+	    	rs = stat.executeQuery(selectSQL); 
+	    	System.out.println("ID\t\tName\t\tPASSWORD\t\tEMAIL"); 
+	    	while(rs.next()) 
+	    	{ 
+	    		System.out.println(rs.getInt("member_id")+"\t\t"+ 
+	            rs.getString("member_account")+"\t\t"+rs.getString("member_password")+"\t\t"+rs.getString("email_address")); 
+	    	} 
+	    	*/
+	    } 
+	    catch(SQLException e) 
+	    { 
+	      System.out.println("DropDB Exception :" + e.toString()); 
+	    } 
+	    finally 
+	    { 
+	      Close(); 
+	    } 
+	    
+	    return result; //0:無此user   1:帳密符合        2:密碼錯誤
+	  } 
+	  public String SelectMailData(String searchMailSQL)   //查詢/判斷帳密是否一樣或錯誤或無此帳號
+	  { 
+		  String result = "";
+		  try 
+		    { 
+		    	pst = con.prepareStatement(searchMailSQL);  
+		    	
+		    	rs = pst.executeQuery(); //select語法用executeQuery()執行
+		    	
+		    	if(rs.next()) //執行一條   while則為執行多條 ，但user名不會重複
+		    	{ 
+		    		result = rs.getString("email");
+		    	}
+		    	
+		    	/*
+		    	stat = con.createStatement(); 
+		    	rs = stat.executeQuery(selectSQL); 
+		    	System.out.println("ID\t\tName\t\tPASSWORD\t\tEMAIL"); 
+		    	while(rs.next()) 
+		    	{ 
+		    		System.out.println(rs.getInt("member_id")+"\t\t"+ 
+		            rs.getString("member_account")+"\t\t"+rs.getString("member_password")+"\t\t"+rs.getString("email_address")); 
+		    	} 
+		    	*/
+		    } 
+		    catch(SQLException e) 
+		    { 
+		      System.out.println("DropDB Exception :" + e.toString()); 
+		    } 
+		    finally 
+		    { 
+		      Close(); 
+		    } 
+		  return result;
+	  } 
+	  
+
+	  public int CheckAuthority(String userID, String checkAuthoritySQL)  //回傳該使用者權限
+	  {
+		  //"select authority from member_table where member_account = ?"
+		  
+		  int result = 0;
+		  try 
+		    { 
+		    	pst = con.prepareStatement(checkAuthoritySQL); 
+		    	
+		    	pst.setString(1, userID); 
+		    	
+		    	rs = pst.executeQuery(); //select語法用executeQuery()執行
+		    	
+		    	if(rs.next()) //執行一條   while則為執行多條 ，但user名不會重複
+		    	{ 
+		    		result = rs.getInt("authority");
+		    	}
+		    	
+		    	/*
+		    	stat = con.createStatement(); 
+		    	rs = stat.executeQuery(selectSQL); 
+		    	System.out.println("ID\t\tName\t\tPASSWORD\t\tEMAIL"); 
+		    	while(rs.next()) 
+		    	{ 
+		    		System.out.println(rs.getInt("member_id")+"\t\t"+ 
+		            rs.getString("member_account")+"\t\t"+rs.getString("member_password")+"\t\t"+rs.getString("email_address")); 
+		    	} 
+		    	*/
+		    } 
+		    catch(SQLException e) 
+		    { 
+		      System.out.println("DropDB Exception :" + e.toString()); 
+		    } 
+		    finally 
+		    { 
+		      Close(); 
+		    } 
+		  return result;
+	  }
+	  
+	  public String CheckPassword(String userID, String checkPasswordSQL)  //回傳該使用者密碼
+	  {
+		  //"select authority from member_table where member_account = ?"
+		  
+		  String result = "";
+		  try 
+		    { 
+		    	pst = con.prepareStatement(checkPasswordSQL); 
+		    	
+		    	pst.setString(1, userID); 
+		    	
+		    	rs = pst.executeQuery(); //select語法用executeQuery()執行
+		    	
+		    	if(rs.next()) //執行一條   while則為執行多條 ，但user名不會重複
+		    	{ 
+		    		result = rs.getString("password");
+		    	}
+		    	
+		    	/*
+		    	stat = con.createStatement(); 
+		    	rs = stat.executeQuery(selectSQL); 
+		    	System.out.println("ID\t\tName\t\tPASSWORD\t\tEMAIL"); 
+		    	while(rs.next()) 
+		    	{ 
+		    		System.out.println(rs.getInt("member_id")+"\t\t"+ 
+		            rs.getString("member_account")+"\t\t"+rs.getString("member_password")+"\t\t"+rs.getString("email_address")); 
+		    	} 
+		    	*/
+		    } 
+		    catch(SQLException e) 
+		    { 
+		      System.out.println("DropDB Exception :" + e.toString()); 
+		    } 
+		    finally 
+		    { 
+		      Close(); 
+		    } 
+		  return result;
+	  }
+	  
+	  public boolean CheckTable_User(String id) //註冊時需查巡該使用者是否存在
+	  { 
+		  //selectSQL = "select * from member_table where member_account = ?";
+		  boolean result = false;
+	    try 
+	    { 
+	    	pst = con.prepareStatement(selectSQL); //檢查使用者是否存在
+	    	
+	    	pst.setString(1, id); 
+	    	
+	    	rs = pst.executeQuery(); //select語法用executeQuery()執行
+	    	
+	    	if(rs.next()) //執行一條   while則為執行多條 ，但user名不會重複
+	    	{ 
+	    		//代表該使用者已存在
+	    		result = true;
+	    	}
+	    	else
+	    	{
+	    		//代表沒此使用者
+	    		result = false;
+	    	}
+	    } 
+	    catch(SQLException e) 
+	    { 
+	      System.out.println("DropDB Exception :" + e.toString()); 
+	    } 
+	    finally 
+	    { 
+	      Close(); 
+	    } 
+	    
+	    return result;
+	  } 
+	  
+	  public boolean CheckTable_Email(String mail) //註冊時需查詢此Email是否存在
+	  { 
+		  //checkSQL = "select * from member_table where email_address = ?"; 
+		  boolean result = false;
+	    try 
+	    { 
+	    	pst = con.prepareStatement(checkSQL); //檢查Email是否存在
+	    	
+	    	pst.setString(1, mail); 
+	    	
+	    	rs = pst.executeQuery(); //select語法用executeQuery()執行
+	    	
+	    	if(rs.next()) //執行一條   while則為執行多條 ，但user名不會重複
+	    	{ 
+	    		//代表該Email已存在
+	    		result = true;
+	    	}
+	    	else
+	    	{
+	    		//代表沒此Email
+	    		result = false;
+	    	}
+	    } 
+	    catch(SQLException e) 
+	    { 
+	      System.out.println("DropDB Exception :" + e.toString()); 
+	    } 
+	    finally 
+	    { 
+	      Close(); 
+	    } 
+	    
+	    return result;
+	  }
+	  
+	  //完整使用完資料庫後,記得要關閉所有Object 
+	  //否則在等待Timeout時,可能會有Connection poor的狀況 
+	  private void Close() 
+	  { 
+	    try 
+	    { 
+	      if(rs!=null) 
+	      { 
+	        rs.close(); 
+	        rs = null; 
+	      } 
+	      if(stat!=null) 
+	      { 
+	        stat.close(); 
+	        stat = null; 
+	      } 
+	      if(pst!=null) 
+	      { 
+	        pst.close(); 
+	        pst = null; 
+	      } 
+	    } 
+	    catch(SQLException e) 
+	    { 
+	      System.out.println("Close Exception :" + e.toString()); 
+	    } 
+	  } 
+	  
+	 /*
+	  public static void main(String[] args) 
+	  { 
+		  //System.out.println("100"); 
+	    //測看看是否正常 
+	    jdbctomysql test = new jdbctomysql(); 
+	    //test.dropTable(); 
+	   // test.createTable(); 
+	    //test.insertTable("yku", "12356"); 
+	    //test.insertTable(107, "b", "00357152", "Shi", "00357152", "sdfsfdsfsdfsa"); 
+	    //System.out.println(test.insertTable( "107", "A", "00357102", "吳國瑋", "0978022536", "0921856328" ));
+	    //test.SelectTable("00357152", "00357152"); 
+	   // test.SelectTable("00357152", "123456");
+	   // test.SelectTable("adaf", "123456");
+	    //String s = test.DeleteTable("00555555");
+	    //System.out.println(s);
+	    //UpdateTable(String year, String clas_s, String id, String name, String password, String email, int auth)
+	    //110B 00357159王維烈0978624144 +60138131133
+
+	    String s = test.UpdateTable("109", "A", "00357159", "asd", "asddgvcvsdyrtj", "rtrhfdsdgrdv", 1);
+	    System.out.println(s);
+	    java.util.Date i = new java.util.Date();
+
+	 // 取的電腦內部的年、月、日、星期、時、分、秒
+
+	 int Year = i.getYear()+1900;
+
+	 int Month = i.getMonth()+1;
+
+	 int Day = i.getDate();
+
+	 int WeekDay = i.getDay();
+
+	 int Hour = i.getHours();
+
+	 int Minute = i.getMinutes();
+
+	 int Second = i.getSeconds();
+	 
+	 String aaa = "00357152";
+	 int a = Integer.parseInt(aaa);
+	 System.out.println(a);
+	 System.out.println(i.toString());
+	 System.out.println(Year-1911);
+	 System.out.println(Month);
+	 System.out.println(Day);
+	 System.out.println(WeekDay);
+	  }
+	*/
+}

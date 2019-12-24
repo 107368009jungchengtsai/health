@@ -1,0 +1,622 @@
+package db;
+
+import java.io.File;
+import java.sql.Connection; 
+import java.sql.DriverManager; 
+import java.sql.PreparedStatement; 
+import java.sql.ResultSet; 
+import java.sql.SQLException; 
+import java.sql.Statement; 
+
+import java.util.ArrayList;
+
+import user.UserInfoBean; 
+
+public class JDBCtoMysqlwithCsvData {
+	
+	  private Connection con = null; //Database objects 
+	  //連接object 
+	  private Statement stat = null; 
+	  //執行,傳入之sql為完整字串 
+	  private ResultSet rs = null; 
+	  //結果集 
+	  private PreparedStatement pst = null; 
+	  //執行,傳入之sql為預儲之字申,需要傳入變數之位置 
+	  //先利用?來做標示 
+	  
+	  private String dropdbSQL = "DROP TABLE User "; 
+	  
+	  private String createdbSQL = "CREATE TABLE User (" + 
+	    " table_number INTEGER NOT NULL AUTO_INCREMENT " + 
+	    " , department_grade_class VARCHAR(20) NOT NULL " + 
+	    " , student_id VARCHAR(10) NOT NULL " + 
+	    " , name VARCHAR(10) NOT NULL " + 
+	    " , password VARCHAR(20) NOT NULL " + 
+	    " , phone VARCHAR(20) NOT NULL " + 
+	    " , authority INTEGER(1) NOT NULL DEFAULT 0 " + " , PRIMARY KEY (table_number)" + ")"; 
+	
+	  
+	  public JDBCtoMysqlwithCsvData() 
+	  { 
+	    try { 
+	      Class.forName("com.mysql.jdbc.Driver"); 
+	      //註冊driver 
+	      con = DriverManager.getConnection( 
+	      "jdbc:mysql://localhost/virtual_lab_server_db?useUnicode=true&characterEncoding=Big5", 
+	      "root","00357102"); 
+	      //取得connection
+	 
+	//jdbc:mysql://localhost/test?useUnicode=true&characterEncoding=Big5
+	//localhost是主機名,test是database名
+	//useUnicode=true&characterEncoding=Big5使用的編碼 
+	      //System.out.println("1"); 
+	    } 
+	    catch(ClassNotFoundException e) 
+	    { 
+	      System.out.println("DriverClassNotFound :"+e.toString()); 
+	    }//有可能會產生sqlexception 
+	    catch(SQLException x) { 
+	      System.out.println("Exception :"+x.toString()); 
+	      //System.out.println("2"); 
+	    } 
+	    
+	  }
+	  
+	  
+	  
+	  public String createTable(String createdbSQL, String course) 
+	  { 
+		  String result="";
+	    try 
+	    { 
+	    	stat = con.createStatement(); 
+		    stat.executeUpdate(createdbSQL); 
+		    
+		    String insertdbSQL = "insert into course_name(table_number,course) " + 
+			 	      "select ifNULL(max(table_number),0)+1,? FROM course_name";
+		    
+		    pst = con.prepareStatement(insertdbSQL); 
+	  	      
+    		pst.setString(1, course);  
+  	      	pst.executeUpdate();
+  	      	
+  	      File dir_file = new File("C:\\Users\\user\\Desktop\\Users\\"+course);	  /*路徑跟檔名*/
+		    dir_file.mkdir();
+  	      	
+	    } 
+	    catch(SQLException e) 
+	    { 
+	      System.out.println("CreateDB Exception :" + e.toString()); 
+	      result = "CreateDB Exception :" + e.toString();
+	    } 
+	    finally 
+	    { 
+	      Close(); 
+	    } 
+	    return result;
+	  } 
+	  
+	  public String insertTable(String insertdbSQL, String department_grade_class, String student_id, String name, String password, String phone, String courseName, int authority) 
+	  { 
+		  String result = null;
+		  
+		  ArrayList<String> courseList = new ArrayList<String>();
+		  courseList = selectCourseTable();
+		  String selectSQL = "";
+		  //selectSQL = "select * from member_table where student_id = ?";
+		  
+		  for(int i = 0; i < courseList.size(); i ++)
+		  {
+			  selectSQL = "select * from "+courseList.get(i)+" where student_id = ?";
+			  
+			  try 
+			    { 
+				  	//stat = con.createStatement(); 
+			    	//rs = stat.executeQuery(selectSQL); 
+				  
+				  	pst = con.prepareStatement(selectSQL); 
+			    	
+			    	pst.setString(1, student_id); 
+			    	
+			    	rs = pst.executeQuery(); //select語法用executeQuery()執行
+				  
+			    	//System.out.println("ID\t\tName\t\tPASSWORD\t\tEMAIL"); 
+			    	if(rs.next()) 
+			    	{ 
+			    		//System.out.println(rs.getInt("table_number")+"\t\t"+ 
+			            //rs.getString("department_grade_class")+"\t\t"+rs.getString("student_id")+"\t\t"+rs.getString("name")+"\t\t"+rs.getString("password")+"\t\t"+rs.getString("phone")+"\t\t"+rs.getInt("authority")); 
+			    		department_grade_class = rs.getString("department_grade_class");
+			    		name = rs.getString("name");
+			    		password = rs.getString("password");
+			    		phone = rs.getString("phone");
+			    		authority = rs.getInt("authority");
+			    	} 
+			    } 
+			    catch(SQLException e) 
+			    { 
+			      System.out.println("SelectDB Exception :" + e.toString()); 
+			    } 
+			    finally 
+			    { 
+			      Close(); 
+			    } 
+			  
+		  }
+		  
+		 
+	    try 
+	    { 
+	    		pst = con.prepareStatement(insertdbSQL); 
+	  	      
+	    		pst.setString(1, department_grade_class); 
+	  	      	pst.setString(2, student_id); 
+	  	      	pst.setString(3, name); 
+	  	      	pst.setString(4, password); 
+	  	      	pst.setString(5, phone); 
+	  	      	pst.setInt(6, authority); 
+	  	      	pst.executeUpdate();
+	  	      	
+	  	      	File dir_file = new File("C:\\Users\\user\\Desktop\\Users\\"+courseName+"\\"+student_id);	  /*路徑跟檔名*/
+			    dir_file.mkdir();
+			    
+	  	      	result = "";
+	    	
+	    	
+	    } 
+	    catch(SQLException e) 
+	    { 
+	      System.out.println("InsertDB Exception :" + e.toString()); 
+	      result = "InsertDB Exception :" + e.toString();
+	    } 
+	    finally 
+	    { 
+	      Close(); 
+	    } 
+	    return result;
+	  } 
+	  
+	  public String DeleteUsers(String deleteSQL, String course, String id)
+	  {
+		  String result = "";
+		  
+		  //String deleteSQL = "DELETE FROM member_table WHERE student_id = ?";
+		  
+		  try 
+		    { 
+		    	
+		    	pst = con.prepareStatement(deleteSQL); 
+		  	      
+		    	pst.setString(1, id); 
+		  	    pst.executeUpdate();
+		  	    //result = "aaa";
+		  	    
+			  File dir_file = new File("C:\\Users\\user\\Desktop\\Users\\"+course+"\\"+id);
+			  deleteAll(dir_file);
+		  	    result = "";
+		    } 
+		    catch(Exception e) 
+		    { 
+		    	System.out.println("DeleteDB Exception :" + e.toString()); 
+		    	result = e.toString();
+		    } 
+		    finally 
+		    { 
+		      Close(); 
+		    } 
+		  return result;
+	  }
+	  
+	  public void deleteAll(File path)
+	  { 
+		  if(!path.exists())   return; 
+		  if(path.isFile())
+		  { 
+		    path.delete(); 
+		    return; 
+		  } 
+		  File[] files = path.listFiles();     
+		    for(int i=0;i <files.length;i++)
+		    { 
+		      deleteAll(files[i]); 
+		    } 
+		    path.delete(); 
+		}
+	  
+	  public String SelectRootTable(String id, String pass)   //查詢/判斷帳密是否一樣或錯誤或無此帳號
+	  { 
+		  String result ="";
+		  String selectRootSQL = "select * from Root where id = ?";
+	    try 
+	    { 
+	    	pst = con.prepareStatement(selectRootSQL); 
+	    	
+	    	pst.setString(1, id); 
+	    	
+	    	rs = pst.executeQuery(); //select語法用executeQuery()執行
+	    	
+	    	if(rs.next()) //執行一條   while則為執行多條 ，但user名不會重複
+	    	{ 
+	    		
+	    		if(rs.getString("password").equals(pass)) //用equals()比對字串，不可使用==
+	    		{
+	    			//System.out.println("Bingo" + rs.getString("member_password")); 
+	    			//UserInfoBean currentUser = new UserInfoBean(name, pass);
+	    			//currentUser.setIsLogin(true);
+	    			//return currentUser;
+	    			result = "root_match"; //match
+	    		}
+	    		else  //error password
+	    		{
+	    			//System.out.println("Fucking Hacker" + rs.getString("member_password")); 
+	    			result = "root_error_pass";
+	    		}
+	    	}
+	    	else
+	    	{
+	    		//System.out.println("Nigger"); //代表沒找到
+	    		result = "root_not_found";
+	    	}
+	    	/*
+	    	stat = con.createStatement(); 
+	    	rs = stat.executeQuery(selectSQL); 
+	    	System.out.println("ID\t\tName\t\tPASSWORD\t\tEMAIL"); 
+	    	while(rs.next()) 
+	    	{ 
+	    		System.out.println(rs.getInt("member_id")+"\t\t"+ 
+	            rs.getString("member_account")+"\t\t"+rs.getString("member_password")+"\t\t"+rs.getString("email_address")); 
+	    	} 
+	    	*/
+	    } 
+	    catch(SQLException e) 
+	    { 
+	      System.out.println("DropDB Exception :" + e.toString()); 
+	    } 
+	    finally 
+	    { 
+	      Close(); 
+	    } 
+	    
+	    return result; //0:無此user   1:帳密符合        2:密碼錯誤
+	  } 
+	  
+	  public String SelectAllUsers(String id, String pass)   //查詢/判斷帳密是否一樣或錯誤或無此帳號
+	  { 
+		  String result = "";
+		  ArrayList<String> courseList = new ArrayList<String>();
+		  courseList = selectCourseTable();
+		  String selectSQL = "";
+		  //selectSQL = "select * from member_table where student_id = ?";
+		  for(int i = 0; i < courseList.size(); i ++)
+		  {
+			  selectSQL = "select * from "+courseList.get(i)+" where student_id = ?";
+			  
+			  try 
+			    { 
+				  	//stat = con.createStatement(); 
+			    	//rs = stat.executeQuery(selectSQL); 
+				  
+				  	pst = con.prepareStatement(selectSQL); 
+			    	
+			    	pst.setString(1, id); 
+			    	
+			    	rs = pst.executeQuery(); //select語法用executeQuery()執行
+				  
+			    	//System.out.println("ID\t\tName\t\tPASSWORD\t\tEMAIL"); 
+			    	if(rs.next()) 
+			    	{ 
+			    		//System.out.println(rs.getInt("table_number")+"\t\t"+ 
+			            //rs.getString("department_grade_class")+"\t\t"+rs.getString("student_id")+"\t\t"+rs.getString("name")+"\t\t"+rs.getString("password")+"\t\t"+rs.getString("phone")+"\t\t"+rs.getInt("authority")); 
+			    		if(rs.getString("password").equals(pass))
+			    		{
+			    			result = "match";
+			    		}
+			    		else
+			    		{
+			    			result = "error_pass";
+			    		}
+			    	
+			    	} 
+			    	else
+			    	{
+			    		result = "id_not_found";
+			    	}
+			    	//System.out.println("------------------------**********************-------------------------"); 
+			    	
+			    } 
+			    catch(SQLException e) 
+			    { 
+			      System.out.println("SelectDB Exception :" + e.toString()); 
+			    } 
+			    finally 
+			    { 
+			      Close(); 
+			    } 
+			  
+		  }
+	    
+	    
+	    return result; //0:無此user   1:帳密符合        2:密碼錯誤
+	  }
+	  
+	  public String CheckIdInCourse(String id, String pass, String courseName)   //查詢/判斷帳密是否一樣或錯誤或無此帳號
+	  { 
+		  String result = "";
+		  ArrayList<String> courseList = new ArrayList<String>();
+		  courseList = selectCourseTable();
+		  String selectSQL = "";
+		  //selectSQL = "select * from member_table where student_id = ?";
+			  selectSQL = "select * from "+courseName+" where student_id = ?";
+			  
+			  try 
+			    { 
+				  	//stat = con.createStatement(); 
+			    	//rs = stat.executeQuery(selectSQL); 
+				  
+				  	pst = con.prepareStatement(selectSQL); 
+			    	
+			    	pst.setString(1, id); 
+			    	
+			    	rs = pst.executeQuery(); //select語法用executeQuery()執行
+				  
+			    	//System.out.println("ID\t\tName\t\tPASSWORD\t\tEMAIL"); 
+			    	if(rs.next()) 
+			    	{ 
+			    		//System.out.println(rs.getInt("table_number")+"\t\t"+ 
+			            //rs.getString("department_grade_class")+"\t\t"+rs.getString("student_id")+"\t\t"+rs.getString("name")+"\t\t"+rs.getString("password")+"\t\t"+rs.getString("phone")+"\t\t"+rs.getInt("authority")); 
+			    		if(rs.getString("password").equals(pass))
+			    		{
+			    			result = "match";
+			    		}
+			    		else
+			    		{
+			    			result = "error_pass";
+			    		}
+			    	
+			    	} 
+			    	else
+			    	{
+			    		result = "id_not_found";
+			    	}
+			    	//System.out.println("------------------------**********************-------------------------"); 
+			    	
+			    } 
+			    catch(SQLException e) 
+			    { 
+			      System.out.println("SelectDB Exception :" + e.toString()); 
+			    } 
+			    finally 
+			    { 
+			      Close(); 
+			    } 
+	    
+	    
+	    return result; //0:無此user   1:帳密符合        2:密碼錯誤
+	  }
+	  
+	  public ArrayList<String> selectCourseTable()   //查詢/判斷帳密是否一樣或錯誤或無此帳號
+	  { 
+		  //int result = 0;
+		  String selectSQL = "select * from course_name"; 
+		  ArrayList<String> courseList = new <String>ArrayList();
+	    try 
+	    { 
+	    	stat = con.createStatement(); 
+	    	rs = stat.executeQuery(selectSQL); 
+	    	//System.out.println("ID\t\tName\t\tPASSWORD\t\tEMAIL"); 
+	    	while(rs.next()) 
+	    	{ 
+	    		//System.out.println(rs.getInt("table_number")+"\t\t"+rs.getString("course"));
+	    		courseList.add(rs.getString("course"));
+	    	} 
+	    	
+	    } 
+	    catch(SQLException e) 
+	    { 
+	      System.out.println("selectCourseTable DB Exception :" + e.toString()); 
+	    } 
+	    finally 
+	    { 
+	      Close(); 
+	    } 
+	    
+	    return courseList;
+	  } 
+	  
+	  public String UpdateTable(String updateSQL, String dep, String id, String name, String password, String phone, int auth)
+	  {
+		  String result = "";
+		  
+			//String updateSQL = "UPDATE "+course+" set department_grade_class = ?, name = ?, password = ?, phone = ?, authority = ? WHERE student_id = ?";
+		  try 
+		    { 
+		    	
+		    	pst = con.prepareStatement(updateSQL); 
+		  	    
+		    	pst.setString(1, dep); 
+		    	pst.setString(2, name); 
+		    	pst.setString(3, password); 
+		    	pst.setString(4, phone); 
+		    	pst.setInt(5, auth); 
+		    	pst.setString(6, id); 
+		    	
+		  	    pst.executeUpdate();
+		  	    //result = "aaa";
+		    } 
+		    catch(SQLException e) 
+		    { 
+		    	System.out.println("UpdateTable DB Exception :" + e.toString()); 
+		    	result = e.toString();
+		    } 
+		    finally 
+		    { 
+		      Close(); 
+		    } 
+		  return result;
+	  }
+	  
+	  public ArrayList<ArrayList> SelectAllTable(String course) //member table
+	  {
+		  
+		  //String selectAllSQL = "select * from member_table where graduate_year = ?";
+		  String selectAllSQL = "Select * from "+course+" order by student_id ASC";
+		  
+		  //ArrayList<UserInfoBean> userList = new ArrayList<UserInfoBean>();
+		  ArrayList<ArrayList> userList = new ArrayList<ArrayList>();
+		  
+		  //ArrayList<ArrayList> sortList = new ArrayList<ArrayList>();
+		  try 
+		    { 
+				  stat = con.createStatement(); 
+				  rs = stat.executeQuery(selectAllSQL); 
+
+				  while(rs.next()) 
+			      { 
+			    	  //UserInfoBean currentUser = new UserInfoBean(rs.getInt("table_number"), rs.getString("graduate_year"), rs.getString("class"), rs.getString("student_id"), rs.getString("name"), rs.getString("password"), rs.getString("email"), rs.getInt("authority"));
+					  ArrayList<String> tempList = new ArrayList<String>();
+			    	  //System.out.println(rs.getInt("table_number")+"\t\t"+rs.getString("department_grade_class")+"\t\t"+rs.getString("student_id")+"\t\t"+rs.getString("name")+"\t\t"+rs.getString("password")+"\t\t"+rs.getString("phone")+"\t\t"+rs.getString("authority"));
+			    	  tempList.add(rs.getString("department_grade_class"));
+			    	  tempList.add(rs.getString("student_id"));
+			    	  tempList.add(rs.getString("name"));
+			    	  tempList.add(rs.getString("password"));
+			    	  tempList.add(rs.getString("phone"));
+			    	  tempList.add(rs.getString("authority"));
+			    	  
+			    	  userList.add(tempList);
+			      } 
+			  
+			  //stat = con.createStatement(); 
+		      //rs = stat.executeQuery(selectAllSQL); 
+		      //System.out.println("ID\t\tName\t\tPASSWORD"); 
+		      
+		    	
+		    } 
+		    catch(SQLException e) 
+		    { 
+		      System.out.println("SelectAllTable DB Exception :" + e.toString()); 
+		    } 
+		    finally 
+		    { 
+		      Close(); 
+		    } 
+		  
+		  return userList;
+	  }
+	  
+	  public String deleteTable(String deleteSQL, String id, String courseName)
+	  {
+		  
+		  String result = "";
+		  try 
+		    { 
+		    	
+		    	pst = con.prepareStatement(deleteSQL); 
+		  	      
+		    	pst.setString(1, id); 
+		  	    pst.executeUpdate();
+		  	    
+		  	    
+		  	    
+		  	    //result = "aaa";
+		    } 
+		    catch(SQLException e) 
+		    { 
+		    	System.out.println("DeleteDB Exception :" + e.toString()); 
+		    	result = e.toString();
+		    } 
+		    finally 
+		    { 
+		      Close(); 
+		    } 
+		  return result;
+	  }
+	  
+	  public String dropTable(String dropdbSQL, String course) 
+	  { 
+		  String result = "";
+	    try 
+	    { 
+	      stat = con.createStatement(); 
+	      stat.executeUpdate(dropdbSQL); 
+	      
+	      String deleteSQL = "DELETE FROM course_name WHERE course = ?";
+	      
+	      pst = con.prepareStatement(deleteSQL); 
+  	      
+  		  pst.setString(1, course);  
+	      pst.executeUpdate();
+	      
+	      File dir_file = new File("C:\\Users\\user\\Desktop\\Users\\"+course);
+		  deleteAll(dir_file);
+	      
+		  result = "刪除成功";
+	    } 
+	    catch(SQLException e) 
+	    { 
+	      System.out.println("DropDB Exception :" + e.toString()); 
+	      result = "DropDB Exception :" + e.toString();
+	    } 
+	    finally 
+	    { 
+	      Close(); 
+	    } 
+	    return result;
+	  } 
+	  
+	  private void Close() 
+	  { 
+	    try 
+	    { 
+	      if(rs!=null) 
+	      { 
+	        rs.close(); 
+	        rs = null; 
+	      } 
+	      if(stat!=null) 
+	      { 
+	        stat.close(); 
+	        stat = null; 
+	      } 
+	      if(pst!=null) 
+	      { 
+	        pst.close(); 
+	        pst = null; 
+	      } 
+	    } 
+	    catch(SQLException e) 
+	    { 
+	      System.out.println("Close Exception :" + e.toString()); 
+	    } 
+	  } 
+	  
+	  
+	  /*
+	  public static void main(String[] args) 
+	  {
+		  String createdbSQL = "CREATE TABLE 電路3A (" + 
+				    " table_number INTEGER NOT NULL AUTO_INCREMENT " + 
+				    " , department_grade_class VARCHAR(20) NOT NULL " + 
+				    " , student_id VARCHAR(10) NOT NULL " + 
+				    " , name VARCHAR(10) NOT NULL " + 
+				    " , password VARCHAR(20) NOT NULL " + 
+				    " , phone VARCHAR(20) NOT NULL " + 
+				    " , authority INTEGER(1) NOT NULL DEFAULT 0 " + " , PRIMARY KEY (table_number)" + ")"; 
+		  
+		  String dropdbSQL = "DROP TABLE ZZZZZ "; 
+		  
+		  String insertdbSQL = "insert into 電路3A (table_number,department_grade_class,student_id,name,password,phone) " + 
+		 	      "select ifNULL(max(table_number),0)+1,?,?,?,?,? FROM 電路3A"; 
+		  
+		  String deleteSQL = "DELETE FROM 電路3A WHERE student_id = ?";
+		  
+		  JDBCtoMysqlwithCsvData test = new JDBCtoMysqlwithCsvData(); 
+		  test.dropTable(dropdbSQL,"ZZZZZ"); 
+		  //test.createTable(createdbSQL, "電路3A");
+		  //test.insertTable(insertdbSQL, "資工4A", "00357777", "哈哈哈", "dfgssdfsdf", "0922222222" , "電路3A");
+		  //test.selectCourseTable();
+		  //String temp = test.SelectAllUsers("00357102", "77777777");
+		  //System.out.println(temp);
+		  //test.DeleteTable();
+		   //test.showTable();
+	  }
+	  */
+}
