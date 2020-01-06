@@ -20,6 +20,7 @@ README.md
 ```
 
 ## Development server
-
+下載XAMPP 7.4.1 for windows
+https://www.apachefriends.org/zh_tw/index.html
 
 
